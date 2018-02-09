@@ -6,11 +6,12 @@
 #include <pimg/Condense.h>
 #include <sprite2/SymType.h>
 #include <s2loader/SymbolFile.h>
+#include <js/RapidJsonHelper.h>
 
 #include <gum/ResPool.h>
 #include <gum/Config.h>
 
-#include <json/json.h>
+#include <rapidjson/document.h>
 
 #include <boost/filesystem.hpp>
 
@@ -20,9 +21,6 @@
 #include <iostream>
 #include <fstream>
 
-FILE _iob[] = { *stdin, *stdout, *stderr };
-extern "C" FILE * __cdecl __iob_func(void) { return _iob; }
-
 namespace
 {
 
@@ -30,76 +28,61 @@ static const char* OUTPUT_FILE = "trim";
 
 class JsonConfig
 {
-public:	
+public:
 	void LoadFromFile(const std::string& filepath)
 	{
-		Json::Value value;
-		Json::Reader reader;
-		std::locale::global(std::locale(""));
-		std::ifstream fin(filepath.c_str());
-		std::locale::global(std::locale("C"));
-		reader.parse(fin, value);
-		fin.close();
-
-		int idx = 0;
-		Json::Value val = value[idx++];
-		while (!val.isNull()) 
+		rapidjson::Document doc;
+		js::RapidJsonHelper::ReadFromFile(filepath.c_str(), doc);
+		for (auto& val : doc.GetArray())
 		{
-			std::string filepath = val["filepath"].asString();
-			auto item = std::make_unique<Item>();
-			item->val  = val;
-			item->time = std::stoi(val["time"].asString());
+			std::string filepath = val["filepath"].GetString();
+			uint64_t timestamp = std::stoi(val["timestamp"].GetString());
+			auto item = std::make_unique<Item>(val, timestamp, false, doc.GetAllocator());
 			m_map_items.insert(std::make_pair(filepath, std::move(item)));
-			val = value[idx++];
 		}
 	}
 
-	void Insert(const std::string& filepath, const Json::Value& val, int64_t time)
+	void Insert(const std::string& filepath, const rapidjson::Value& val, uint64_t timestamp,
+		        rapidjson::MemoryPoolAllocator<>& alloc)
 	{
 		auto itr = m_map_items.find(filepath);
 		if (itr != m_map_items.end()) 
 		{
-			GD_ASSERT(itr->second->time != time, "err time");
-			itr->second->time = time;
-			itr->second->val  = val;
+			GD_ASSERT(itr->second->timestamp != timestamp, "err timestamp");
+			itr->second->timestamp = timestamp;
+			itr->second->val ;
 		} 
 		else 
 		{
-			Item* item = new Item;
-			item->val = val;
-			item->time = time;
-			item->used = true;
-			m_map_items.insert(std::make_pair(filepath, item));
+			auto item = std::make_unique<Item>(val, timestamp, true, alloc);
+			m_map_items.insert(std::make_pair(filepath, std::move(item)));
 		}
 	}
 
 	void OutputToFile(const std::string& filepath, const std::string& dst_dir) const
 	{
-		Json::Value value;
+		rapidjson::Document doc;
+		doc.SetArray();
+
 		auto itr = m_map_items.begin();
 		for (int i = 0; itr != m_map_items.end(); ++itr) 
 		{
 			if (itr->second->used) {
-				value[i++] = itr->second->val;
+				doc.PushBack(itr->second->val, doc.GetAllocator());
 			} else {
 				boost::filesystem::remove(dst_dir + "\\" + itr->first);
 			}
 		}
 
-		Json::StyledStreamWriter writer;
-		std::locale::global(std::locale(""));
-		std::ofstream fout(filepath.c_str());
-		std::locale::global(std::locale("C"));	
-		writer.write(fout, value);
-		fout.close();
+		js::RapidJsonHelper::WriteToFile(filepath.c_str(), doc);
 	}
 
-	int64_t QueryTime(const std::string& filepath) const
+	uint64_t QueryTime(const std::string& filepath) const
 	{
 		auto itr = m_map_items.find(filepath);
 		if (itr != m_map_items.end()) {
 			itr->second->used = true;
-			return itr->second->time;
+			return itr->second->timestamp;
 		} else {
 			return 0;
 		}
@@ -108,10 +91,12 @@ public:
 private:
 	struct Item
 	{
-		Item() : time(0), used(false) {}
+		Item(const rapidjson::Value& val, uint64_t timestamp, bool used, 
+			 rapidjson::MemoryPoolAllocator<>& alloc)
+			: val(val, alloc), timestamp(timestamp), used(used) {}
 
-		Json::Value val;
-		int64_t time;
+		rapidjson::Value val;
+		uint64_t         timestamp;
 
 		mutable bool used;
 	};
@@ -130,8 +115,12 @@ bool IsTransparent(const pimg::ImageData& img, int x, int y)
 	}
 }
 
-void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, Json::Value& val)
+void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, 
+	                rapidjson::Value& val, rapidjson::MemoryPoolAllocator<>& alloc)
 {
+	rapidjson::Value bound_val;
+	bound_val.SetObject();
+
 	// left
 	{
 		int tot = 0, max = 0;
@@ -147,8 +136,12 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, Json::Value
 				}
 			}
 		}
-		val["bound"]["left"]["tot"] = tot;
-		val["bound"]["left"]["max"] = max;
+
+		rapidjson::Value left_val;
+		left_val.SetObject();
+		left_val.AddMember("tot", tot, alloc);
+		left_val.AddMember("max", max, alloc);
+		bound_val.AddMember("left", left_val, alloc);
 	}
 	// right
 	{
@@ -165,8 +158,12 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, Json::Value
 				}
 			}
 		}
-		val["bound"]["right"]["tot"] = tot;
-		val["bound"]["right"]["max"] = max;
+
+		rapidjson::Value right_val;
+		right_val.SetObject();
+		right_val.AddMember("tot", tot, alloc);
+		right_val.AddMember("max", max, alloc);
+		bound_val.AddMember("right", right_val, alloc);
 	}
 	// bottom
 	{
@@ -183,8 +180,12 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, Json::Value
 				}
 			}
 		}
-		val["bound"]["bottom"]["tot"] = tot;
-		val["bound"]["bottom"]["max"] = max;
+
+		rapidjson::Value bottom_val;
+		bottom_val.SetObject();
+		bottom_val.AddMember("tot", tot, alloc);
+		bottom_val.AddMember("max", max, alloc);
+		bound_val.AddMember("bottom", bottom_val, alloc);
 	}
 	// up
 	{
@@ -201,52 +202,72 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, Json::Value
 				}
 			}
 		}
-		val["bound"]["up"]["tot"] = tot;
-		val["bound"]["up"]["max"] = max;
+
+		rapidjson::Value up_val;
+		up_val.SetObject();
+		up_val.AddMember("tot", tot, alloc);
+		up_val.AddMember("max", max, alloc);
+		bound_val.AddMember("up", up_val, alloc);
 	}
+
+	val.AddMember("bound", bound_val, alloc);
 }
 
 void Trim(const std::string& filepath, const std::string& src_dir, const std::string& dst_dir, JsonConfig& cfg)
 {
-	auto& img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, gum::Config::Instance()->GetPreMulAlpha());
+	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, gum::Config::Instance()->GetPreMulAlpha());
 
-	uint8_t* condense = NULL;
+	uint8_t* condense = nullptr;
 	pimg::Rect r;
-	if (img.GetFormat() == GPF_RGBA8)
+	if (img->GetFormat() == GPF_RGBA8)
 	{
-		pimg::Condense cd(img.GetPixelData(), img.GetWidth(), img.GetHeight());
+		pimg::Condense cd(img->GetPixelData(), img->GetWidth(), img->GetHeight());
 		condense = cd.GetPixels(r);
 	}
 	if (!condense) {
 		r.xmin = r.ymin = 0;
-		r.xmax = img.GetWidth();
-		r.ymax = img.GetHeight();
+		r.xmax = img->GetWidth();
+		r.ymax = img->GetHeight();
 	}
 
+	rapidjson::MemoryPoolAllocator<> alloc;
+
 	// save info
-	Json::Value spr_val;
+	rapidjson::Value val;
+	val.SetObject();
+
 	std::string relative_path = boost::filesystem::relative(filepath, src_dir).string();
-	spr_val["filepath"] = relative_path;
-	spr_val["source size"]["w"] = img.GetWidth();
-	spr_val["source size"]["h"] = img.GetHeight();
-	spr_val["position"]["x"] = r.xmin;
-	spr_val["position"]["y"] = img.GetHeight() - r.ymax;
-	spr_val["position"]["w"] = r.Width();
-	spr_val["position"]["h"] = r.Height();
-	int64_t time = boost::filesystem::last_write_time(filepath);
-	spr_val["time"] = std::to_string(time);
-	StoreBoundInfo(img, pimg::Rect(r.xmin, r.ymin, r.xmax, r.ymax), spr_val);
-	cfg.Insert(relative_path, spr_val, time);
+	val.AddMember("filepath", rapidjson::Value(relative_path.c_str(), alloc), alloc);
+
+	rapidjson::Value sz_val;
+	sz_val.SetObject();
+	sz_val.AddMember("w", img->GetWidth(), alloc);
+	sz_val.AddMember("h", img->GetHeight(), alloc);
+	val.AddMember("source_size", sz_val, alloc);
+
+	rapidjson::Value pos_val;
+	pos_val.SetObject();
+	pos_val.AddMember("x", r.xmin, alloc);
+	pos_val.AddMember("y", img->GetHeight() - r.ymax, alloc);
+	pos_val.AddMember("w", r.Width(), alloc);
+	pos_val.AddMember("h", r.Height(), alloc);
+	val.AddMember("position", pos_val, alloc);
+
+	uint64_t timestamp = boost::filesystem::last_write_time(filepath);
+	val.AddMember("timestamp", rapidjson::Value(std::to_string(timestamp).c_str(), alloc), alloc);
+	StoreBoundInfo(*img, pimg::Rect(r.xmin, r.ymin, r.xmax, r.ymax), val, alloc);
+
+	cfg.Insert(relative_path, val, timestamp, alloc);
 
 	std::string out_filepath = dst_dir + "\\" + relative_path,
 		out_dir = boost::filesystem::path(out_filepath).parent_path().string();
 	boost::filesystem::create_directory(out_dir);
 
 	if (condense) {
-		gimg_export(out_filepath.c_str(), condense, r.Width(), r.Height(), img.GetFormat(), true);
+		gimg_export(out_filepath.c_str(), condense, r.Width(), r.Height(), img->GetFormat(), true);
 		delete[] condense;
 	} else {
-		gimg_export(out_filepath.c_str(), img.GetPixelData(), img.GetWidth(), img.GetHeight(), img.GetFormat(), true);
+		gimg_export(out_filepath.c_str(), img->GetPixelData(), img->GetWidth(), img->GetHeight(), img->GetFormat(), true);
 	}
 }
 
@@ -269,7 +290,7 @@ void ImageCropBorder(const std::string& src_dir, const std::string& dst_dir)
 			continue;
 		}
 
-		int64_t img_ori_time = cfg.QueryTime(boost::filesystem::relative(filepath, src_dir).string()),
+		uint64_t img_ori_time = cfg.QueryTime(boost::filesystem::relative(filepath, src_dir).string()),
 			    img_new_time = boost::filesystem::last_write_time(filepath);
 
 		if (img_new_time != img_ori_time) {
@@ -295,7 +316,7 @@ int main(int argc, char* argv[])
 	gum::Config* cfg = gum::Config::Instance();
 	bool old = cfg->GetPreMulAlpha();
 	cfg->SetPreMulAlpha(false);
-	ImageCropBorder(argv[2], argv[3]);
+	ImageCropBorder(argv[1], argv[2]);
 	cfg->SetPreMulAlpha(old);
 
 	return 0;
