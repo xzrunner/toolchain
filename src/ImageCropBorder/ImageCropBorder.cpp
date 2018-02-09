@@ -42,7 +42,7 @@ public:
 		}
 	}
 
-	void Insert(const std::string& filepath, const rapidjson::Value& val, uint64_t timestamp,
+	void Insert(const std::string& filepath, rapidjson::Value& val, uint64_t timestamp,
 		        rapidjson::MemoryPoolAllocator<>& alloc)
 	{
 		auto itr = m_map_items.find(filepath);
@@ -50,7 +50,7 @@ public:
 		{
 			GD_ASSERT(itr->second->timestamp != timestamp, "err timestamp");
 			itr->second->timestamp = timestamp;
-			itr->second->val ;
+			itr->second->val.Swap(val);
 		} 
 		else 
 		{
@@ -91,9 +91,12 @@ public:
 private:
 	struct Item
 	{
-		Item(const rapidjson::Value& val, uint64_t timestamp, bool used, 
+		Item(rapidjson::Value& val, uint64_t timestamp, bool used, 
 			 rapidjson::MemoryPoolAllocator<>& alloc)
-			: val(val, alloc), timestamp(timestamp), used(used) {}
+			: timestamp(timestamp), used(used) 
+		{
+			this->val.Swap(val);
+		}
 
 		rapidjson::Value val;
 		uint64_t         timestamp;
@@ -213,7 +216,8 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r,
 	val.AddMember("bound", bound_val, alloc);
 }
 
-void Trim(const std::string& filepath, const std::string& src_dir, const std::string& dst_dir, JsonConfig& cfg)
+void Trim(const std::string& filepath, const std::string& src_dir, const std::string& dst_dir, 
+	      JsonConfig& cfg, rapidjson::MemoryPoolAllocator<>& alloc)
 {
 	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, gum::Config::Instance()->GetPreMulAlpha());
 
@@ -229,8 +233,6 @@ void Trim(const std::string& filepath, const std::string& src_dir, const std::st
 		r.xmax = img->GetWidth();
 		r.ymax = img->GetHeight();
 	}
-
-	rapidjson::MemoryPoolAllocator<> alloc;
 
 	// save info
 	rapidjson::Value val;
@@ -281,21 +283,24 @@ void ImageCropBorder(const std::string& src_dir, const std::string& dst_dir)
 		cfg.LoadFromFile(out_json_filepath);
 	}
 
+	rapidjson::MemoryPoolAllocator<> alloc;
+
 	boost::filesystem::recursive_directory_iterator itr(src_dir), end;
 	while (itr != end) 
 	{
 		std::string filepath = itr->path().string();
 
 		if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
+			++itr;
 			continue;
 		}
 
 		uint64_t img_ori_time = cfg.QueryTime(boost::filesystem::relative(filepath, src_dir).string()),
-			    img_new_time = boost::filesystem::last_write_time(filepath);
+			     img_new_time = boost::filesystem::last_write_time(filepath);
 
 		if (img_new_time != img_ori_time) {
-			Trim(filepath, src_dir, dst_dir, cfg);
-		}		
+			Trim(filepath, src_dir, dst_dir, cfg, alloc);
+		}
 
 		++itr;
 	}
