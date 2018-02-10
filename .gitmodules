@@ -100,3 +100,12 @@
 [submodule "ext/rigging/src/rigging"]
 	path = ext/rigging/src/rigging
 	url = git@github.com:xzrunner/rigging.git
+[submodule "ext/flatten"]
+	path = ext/flatten
+	url = git@github.com:xzrunner/flatten.git
+[submodule "ext/node0"]
+	path = ext/node0
+	url = git@github.com:xzrunner/node0.git
+[submodule "ext/texpack/src/texpack"]
+	path = ext/texpack/src/texpack
+	url = git@github.com:xzrunner/texpack.git
