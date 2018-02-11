@@ -1,3 +1,6 @@
+#include "ModifyTime.h"
+#include "OpLog.h"
+
 #include <guard/check.h>
 #include <gimg_typedef.h>
 #include <gimg_export.h>
@@ -22,92 +25,8 @@
 namespace
 {
 
-static const char* OUTPUT_FILE = "crop-border.json";
-
-class JsonConfig
-{
-public:
-	void LoadFromFile(const std::string& filepath)
-	{
-		js::RapidJsonHelper::ReadFromFile(filepath.c_str(), m_src_doc);
-		for (auto& val : m_src_doc.GetArray())
-		{
-			std::string filepath = val["filepath"].GetString();
-			uint64_t timestamp = std::stoi(val["timestamp"].GetString());
-			auto item = std::make_unique<Item>(val, timestamp, false, m_src_doc.GetAllocator());
-			m_map_items.insert(std::make_pair(filepath, std::move(item)));
-		}
-	}
-
-	void Insert(const std::string& filepath, rapidjson::Value& val, uint64_t timestamp,
-		        rapidjson::MemoryPoolAllocator<>& alloc)
-	{
-		auto itr = m_map_items.find(filepath);
-		if (itr != m_map_items.end()) 
-		{
-			GD_ASSERT(itr->second->timestamp != timestamp, "err timestamp");
-			itr->second->timestamp = timestamp;
-			itr->second->val.Swap(val);
-		} 
-		else 
-		{
-			auto item = std::make_unique<Item>(val, timestamp, true, alloc);
-			m_map_items.insert(std::make_pair(filepath, std::move(item)));
-		}
-	}
-
-	void OutputToFile(const std::string& filepath, const std::string& dst_dir) const
-	{
-		rapidjson::Document dst_doc;
-		dst_doc.SetArray();
-
-		auto itr = m_map_items.begin();
-		for (int i = 0; itr != m_map_items.end(); ++itr) 
-		{
-			if (itr->second->used) {
-				dst_doc.PushBack(itr->second->val, dst_doc.GetAllocator());
-			} else {
-				boost::filesystem::remove(
-					boost::filesystem::absolute(itr->first, dst_dir));
-			}
-		}
-
-		js::RapidJsonHelper::WriteToFile(filepath.c_str(), dst_doc);
-	}
-
-	uint64_t QueryTime(const std::string& filepath) const
-	{
-		auto itr = m_map_items.find(filepath);
-		if (itr != m_map_items.end()) {
-			itr->second->used = true;
-			return itr->second->timestamp;
-		} else {
-			return 0;
-		}
-	}
-
-private:
-	struct Item
-	{
-		Item(rapidjson::Value& val, uint64_t timestamp, bool used, 
-			 rapidjson::MemoryPoolAllocator<>& alloc)
-			: timestamp(timestamp), used(used) 
-		{
-			this->val.Swap(val);
-		}
-
-		rapidjson::Value val;
-		uint64_t         timestamp;
-
-		mutable bool used;
-	};
-
-private:
-	rapidjson::Document m_src_doc;
-
-	std::map<std::string, std::unique_ptr<Item>> m_map_items;
-
-}; // JsonConfig
+static const char* TIME_FILEPATH = "crop_border_time.json";
+static const char* LOG_FILEPATH  = "crop_border_log.json";
 
 bool IsTransparent(const pimg::ImageData& img, int x, int y)
 {
@@ -243,9 +162,13 @@ void Crop(const std::string& src_filepath, const std::string& dst_filepath)
 	}
 }
 
-void Crop(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
-	      JsonConfig& cfg, rapidjson::MemoryPoolAllocator<>& alloc)
+bool Crop(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
+	      tc::OpLog& log, rapidjson::MemoryPoolAllocator<>& alloc)
 {
+	if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
+		return false;
+	}
+
 	static const bool PRE_MUL_ALPHA(false);
 	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, PRE_MUL_ALPHA);
 
@@ -262,7 +185,7 @@ void Crop(const std::string& filepath, const std::string& src_dir, const std::st
 		r.ymax = img->GetHeight();
 	}
 
-	// save info
+	// save log
 	rapidjson::Value val;
 	val.SetObject();
 
@@ -283,11 +206,9 @@ void Crop(const std::string& filepath, const std::string& src_dir, const std::st
 	pos_val.AddMember("h", r.Height(), alloc);
 	val.AddMember("position", pos_val, alloc);
 
-	uint64_t timestamp = boost::filesystem::last_write_time(filepath);
-	val.AddMember("timestamp", rapidjson::Value(std::to_string(timestamp).c_str(), alloc), alloc);
 	StoreBoundInfo(*img, pimg::Rect(r.xmin, r.ymin, r.xmax, r.ymax), val, alloc);
 
-	cfg.Insert(relative_path, val, timestamp, alloc);
+	log.Insert(relative_path, val, alloc);
 
 	boost::filesystem::create_directory(boost::filesystem::path(dst_filepath).parent_path());
 	if (condense) {
@@ -296,6 +217,8 @@ void Crop(const std::string& filepath, const std::string& src_dir, const std::st
 	} else {
 		gimg_export(dst_filepath.c_str(), img->GetPixelData(), img->GetWidth(), img->GetHeight(), img->GetFormat(), true);
 	}
+
+	return true;
 }
 
 }
@@ -305,45 +228,53 @@ namespace crop
 
 void CropBorder(const std::string& src_path, const std::string& dst_path)
 {
-	if (boost::filesystem::is_directory(src_path))
-	{
-		JsonConfig cfg;
-
-		boost::filesystem::create_directory(dst_path);
-		auto out_json_filepath = boost::filesystem::absolute(OUTPUT_FILE, dst_path);
-		if (boost::filesystem::exists(out_json_filepath)) {
-			cfg.LoadFromFile(out_json_filepath.string());
-		}
-
-		rapidjson::MemoryPoolAllocator<> alloc;
-
-		boost::filesystem::recursive_directory_iterator itr(src_path), end;
-		while (itr != end) 
-		{
-			std::string filepath = itr->path().string();
-
-			if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
-				++itr;
-				continue;
-			}
-
-			auto relative_path = boost::filesystem::relative(filepath, src_path);
-			uint64_t img_ori_time = cfg.QueryTime(relative_path.string()),
-					 img_new_time = boost::filesystem::last_write_time(filepath);
-			if (img_new_time != img_ori_time) {
-				auto dst_filepath = boost::filesystem::absolute(relative_path, dst_path);
-				Crop(filepath, src_path, dst_filepath.string(), cfg, alloc);
-			}
-
-			++itr;
-		}
-
-		cfg.OutputToFile(out_json_filepath.string(), dst_path);
-	}
-	else
-	{
+	if (!boost::filesystem::is_directory(src_path)) {
 		Crop(src_path, dst_path);
+		return;
 	}
+
+	boost::filesystem::create_directory(dst_path);
+
+	tc::ModifyTime modify_time;
+	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
+	modify_time.LoadFromFile(modify_time_filepath.string());
+
+	tc::OpLog log;
+	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
+	log.LoadFromFile(cfg_filepath.string());
+
+	rapidjson::MemoryPoolAllocator<> alloc;
+
+	boost::filesystem::recursive_directory_iterator itr(src_path), end;
+	while (itr != end) 
+	{
+		std::string filepath = itr->path().string();
+		if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
+			++itr;
+			continue;
+		}
+
+		auto relative_path = boost::filesystem::relative(filepath, src_path);
+
+		log.SetUsed(relative_path.string());
+
+		uint64_t old_time = modify_time.Query(relative_path.string()),
+				 new_time = boost::filesystem::last_write_time(filepath);
+		if (old_time == new_time) {
+			++itr;
+			continue;
+		}
+
+		auto dst_filepath = boost::filesystem::absolute(relative_path, dst_path);
+		Crop(filepath, src_path, dst_filepath.string(), log, alloc);
+		modify_time.Insert(relative_path.string(), new_time);
+
+		++itr;
+	}
+
+	log.StoreToFile(cfg_filepath.string(), dst_path);
+
+	modify_time.StoreToFile(modify_time_filepath.string());
 }
 
 }

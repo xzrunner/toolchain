@@ -3,9 +3,11 @@
 
 namespace conv
 {
-	extern void ToETC1(const std::string& src_path, const std::string& dst_path);
-	extern void ToETC2(const std::string& src_path, const std::string& dst_path);
-	extern void ToPVR(const std::string& src_path, const std::string& dst_path);
+
+extern void ToETC1(const std::string& src_path, const std::string& dst_path);
+extern void ToETC2(const std::string& src_path, const std::string& dst_path);
+extern void ToPVR(const std::string& src_path, const std::string& dst_path);
+
 }
 
 int main(int argc, char* argv[])

@@ -1,12 +1,18 @@
 #include <string>
 #include <iostream>
 
+//#pragma comment(lib,"user32.lib")
+//#pragma comment(lib,"gdi32.lib")
+#pragma comment(lib,"Shell32")
+
 namespace crop
 {
-	extern void CropBorder(const std::string& src_path, const std::string& dst_path);
-	extern void RotateCropBorder(const std::string& src_path, const std::string& dst_path);
-	extern void StaticCrop(const std::string& src_path, const std::string& dst_path,
-		int xmin, int ymin, int xmax, int ymax);
+
+extern void CropBorder(const std::string& src_path, const std::string& dst_path);
+extern void RotateCropBorder(const std::string& src_path, const std::string& dst_path);
+extern void StaticCrop(const std::string& src_path, const std::string& dst_path,
+	int xmin, int ymin, int xmax, int ymax);
+
 }
 
 int main(int argc, char* argv[])
