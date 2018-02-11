@@ -109,3 +109,15 @@
 [submodule "ext/texpack/src/texpack"]
 	path = ext/texpack/src/texpack
 	url = git@github.com:xzrunner/texpack.git
+[submodule "ext/rapidvg/src/rapidvg"]
+	path = ext/rapidvg/src/rapidvg
+	url = git@github.com:xzrunner/rapidvg.git
+[submodule "ext/camera25/src/camera25"]
+	path = ext/camera25/src/camera25
+	url = git@github.com:xzrunner/camera25.git
+[submodule "ext/node2"]
+	path = ext/node2
+	url = git@github.com:xzrunner/node2.git
+[submodule "ext/s2storer"]
+	path = ext/s2storer
+	url = git@github.com:xzrunner/s2storer.git
