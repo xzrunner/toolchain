@@ -12,6 +12,7 @@ extern void CropBorder(const std::string& src_path, const std::string& dst_path)
 extern void RotateCropBorder(const std::string& src_path, const std::string& dst_path);
 extern void StaticCrop(const std::string& src_path, const std::string& dst_path,
 	int xmin, int ymin, int xmax, int ymax);
+extern void AutoCropGrids(const std::string& src_path, const std::string& dst_path);
 
 }
 
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
 	}
 	else if (op_str == "auto-grids")
 	{
-
+		crop::AutoCropGrids(argv[2], argv[3]);
 	}
 
 	return 0;

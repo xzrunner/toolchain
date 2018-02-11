@@ -140,9 +140,7 @@ bool CropMulti(const std::string& filepath, const std::string& src_dir, const st
 
 namespace tc
 {
-
 extern bool InitRender();
-
 }
 
 namespace crop

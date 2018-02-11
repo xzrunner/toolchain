@@ -72,6 +72,7 @@ void Application::Do(const std::string& src_path, const std::string& dst_path,
 		}
 
 		auto dst_filepath = boost::filesystem::absolute(relative_path, dst_path);
+		boost::filesystem::create_directory(dst_filepath.parent_path());
 		mfunc(filepath, src_path, dst_filepath.string(), m_op_log, m_alloc);
 
 		++itr;
