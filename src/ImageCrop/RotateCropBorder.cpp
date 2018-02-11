@@ -1,4 +1,4 @@
-#include "ModifyTime.h"
+#include "Application.h"
 #include "OpLog.h"
 
 #include <SM_Vector.h>
@@ -70,14 +70,17 @@ bool GetRotateTrimInfo(const uint8_t* pixels, int img_w, int img_h,
 	return true;
 }
 
-bool Crop(const std::string& src_filepath, const std::string& dst_filepath)
+bool Crop(const std::string& src_filepath, const std::string& dst_filepath,
+	      sm::vec2& center, float& angle)
 {
+	if (s2loader::SymbolFile::Instance()->Type(src_filepath.c_str()) != s2::SYM_IMAGE) {
+		return false;
+	}
+
 	static const bool PRE_MUL_ALPHA(false);
 	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
 
 	int width, height;
-	sm::vec2 center;
-	float angle;
 	bool success = GetRotateTrimInfo(img->GetPixelData(), img->GetWidth(),
 		img->GetHeight(), width, height, center, angle);
 	if (!success || angle == 0) {
@@ -98,49 +101,37 @@ bool Crop(const std::string& src_filepath, const std::string& dst_filepath)
 	return true;
 }
 
-bool Crop(const std::string& filepath, const std::string& src_dir, 
-	      const std::string& dst_filepath, tc::OpLog& log, rapidjson::MemoryPoolAllocator<>& alloc)
+bool CropSingle(const std::string& src_filepath, const std::string& dst_filepath)
 {
-	if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
-		return false;
-	}
-
-	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, PRE_MUL_ALPHA);
-
-	int width, height;
 	sm::vec2 center;
 	float angle;
-	bool success = GetRotateTrimInfo(img->GetPixelData(), img->GetWidth(),
-		img->GetHeight(), width, height, center, angle);
-	if (!success || angle == 0) {
+	return Crop(src_filepath, dst_filepath, center, angle);
+}
+
+bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath, 
+	           std::unique_ptr<tc::OpLog>& op_log, rapidjson::MemoryPoolAllocator<>& alloc)
+{
+	sm::vec2 center;
+	float angle;
+	if (!Crop(filepath, dst_filepath, center, angle)) {
 		return false;
 	}
 
-	auto spr = s2loader::SpriteFactory::Instance()->Create(filepath.c_str());
-	spr->SetPosition(center);
-	spr->SetAngle(angle);
+	if (op_log)
+	{
+		rapidjson::Value val;
+		val.SetObject();
 
-	boost::filesystem::create_directory(
-		boost::filesystem::path(dst_filepath).parent_path());
+		auto relative_path = boost::filesystem::relative(filepath, src_dir);
+		val.AddMember("filepath", rapidjson::Value(relative_path.string().c_str(), alloc), alloc);
 
-	s2::DrawRT rt;
-	rt.Draw(*spr, true, width, height);
-	rt.StoreToFile(dst_filepath.c_str(), width, height);
+		val.AddMember("center_x", center.x, alloc);
+		val.AddMember("center_y", center.y, alloc);
 
-	// save log
-	rapidjson::Value val;
-	val.SetObject();
+		val.AddMember("angle", angle, alloc);
 
-	auto relative_path = boost::filesystem::relative(filepath, src_dir);
-	val.AddMember("filepath", rapidjson::Value(relative_path.string().c_str(), alloc), alloc);
-
-	val.AddMember("center_x", center.x, alloc);
-	val.AddMember("center_y", center.y, alloc);
-
-	val.AddMember("angle", angle, alloc);
-
-	log.Insert(relative_path.string(), val, alloc);
+		op_log->Insert(relative_path.string(), val, alloc);
+	}
 
 	return true;
 }
@@ -161,54 +152,10 @@ void RotateCropBorder(const std::string& src_path, const std::string& dst_path)
 {
 	tc::InitRender();
 
-	if (!boost::filesystem::is_directory(src_path)) {
-		Crop(src_path, dst_path);
-		return;
-	}
-
-	boost::filesystem::create_directory(dst_path);
-
-	tc::ModifyTime modify_time;
 	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
-	modify_time.LoadFromFile(modify_time_filepath.string());
-
-	tc::OpLog log;
 	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
-	log.LoadFromFile(cfg_filepath.string());
-
-	rapidjson::MemoryPoolAllocator<> alloc;
-
-	boost::filesystem::recursive_directory_iterator itr(src_path), end;
-	while (itr != end)
-	{
-		std::string filepath = itr->path().string();
-		if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
-			++itr;
-			continue;
-		}
-
-		auto relative_path = boost::filesystem::relative(filepath, src_path);
-
-		log.SetUsed(relative_path.string());
-
-		uint64_t old_time = modify_time.Query(relative_path.string()),
-				 new_time = boost::filesystem::last_write_time(filepath);
-		if (old_time == new_time) {
-			++itr;
-			continue;
-		}
-
-		auto dst_filepath = boost::filesystem::absolute(relative_path, dst_path);
-		Crop(filepath, src_path, dst_filepath.string(), log, alloc);
-		modify_time.Insert(relative_path.string(), new_time);
-
-		++itr;
-	}
-
-	log.StoreToFile(cfg_filepath.string(), dst_path);
-
-	modify_time.StoreToFile(modify_time_filepath.string());
-
+	tc::Application app(modify_time_filepath.string(), cfg_filepath.string());
+	app.Do(src_path, dst_path, CropSingle, CropMulti, s2::SYM_IMAGE);
 }
 
 }

@@ -18,7 +18,7 @@ void OpLog::LoadFromFile(const std::string& filepath)
 	}
 }
 
-void OpLog::StoreToFile(const std::string& filepath, const std::string& dst_dir) const
+void OpLog::StoreToFile(const std::string& filepath/*, const std::string& dst_dir*/) const
 {
 	rapidjson::Document dst_doc;
 	dst_doc.SetArray();

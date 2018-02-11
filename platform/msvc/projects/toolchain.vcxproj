@@ -59,7 +59,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\ext\cu\src;..\..\..\ext\sm\src\sm;..\..\..\ext\guard\include;..\..\..\ext\unirender\include;..\..\..\ext\shaderlab\include;..\..\..\ext\memmgr\include;..\..\..\ext\js\include;..\..\..\ext\gum\include;..\..\..\ext\external\glfw\include;..\..\..\ext\external\gl\include;..\..\..\ext\external\boost\include;..\..\..\ext\external\rapidjson\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\ext\cu\src;..\..\..\ext\sm\src\sm;..\..\..\ext\guard\include;..\..\..\ext\unirender\include;..\..\..\ext\shaderlab\include;..\..\..\ext\memmgr\include;..\..\..\ext\js\include;..\..\..\ext\sprite2\include;..\..\..\ext\s2loader\include;..\..\..\ext\gum\include;..\..\..\ext\external\glfw\include;..\..\..\ext\external\gl\include;..\..\..\ext\external\boost\include;..\..\..\ext\external\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -85,7 +85,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\ext\cu\src;..\..\..\ext\sm\src\sm;..\..\..\ext\guard\include;..\..\..\ext\unirender\include;..\..\..\ext\shaderlab\include;..\..\..\ext\memmgr\include;..\..\..\ext\js\include;..\..\..\ext\gum\include;..\..\..\ext\external\glfw\include;..\..\..\ext\external\gl\include;..\..\..\ext\external\boost\include;..\..\..\ext\external\rapidjson\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\ext\cu\src;..\..\..\ext\sm\src\sm;..\..\..\ext\guard\include;..\..\..\ext\unirender\include;..\..\..\ext\shaderlab\include;..\..\..\ext\memmgr\include;..\..\..\ext\js\include;..\..\..\ext\sprite2\include;..\..\..\ext\s2loader\include;..\..\..\ext\gum\include;..\..\..\ext\external\glfw\include;..\..\..\ext\external\gl\include;..\..\..\ext\external\boost\include;..\..\..\ext\external\rapidjson\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -217,11 +217,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\toolchain\Application.cpp" />
     <ClCompile Include="..\..\..\src\toolchain\InitRender.cpp" />
     <ClCompile Include="..\..\..\src\toolchain\ModifyTime.cpp" />
     <ClCompile Include="..\..\..\src\toolchain\OpLog.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\toolchain\Application.h" />
     <ClInclude Include="..\..\..\src\toolchain\ModifyTime.h" />
     <ClInclude Include="..\..\..\src\toolchain\OpLog.h" />
   </ItemGroup>

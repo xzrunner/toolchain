@@ -1,4 +1,4 @@
-#include "ModifyTime.h"
+#include "Application.h"
 #include "OpLog.h"
 
 #include <guard/check.h>
@@ -135,45 +135,17 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r,
 	val.AddMember("bound", bound_val, alloc);
 }
 
-void Crop(const std::string& src_filepath, const std::string& dst_filepath)
+bool Crop(const std::string& src_filepath, const std::string& dst_filepath,
+	      std::shared_ptr<pimg::ImageData>& img, pimg::Rect& r)
 {
-	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
-
-	uint8_t* condense = nullptr;
-	pimg::Rect r;
-	if (img->GetFormat() == GPF_RGBA8)
-	{
-		pimg::Condense cd(img->GetPixelData(), img->GetWidth(), img->GetHeight());
-		condense = cd.GetPixels(r);
-	}
-	if (!condense) {
-		r.xmin = r.ymin = 0;
-		r.xmax = img->GetWidth();
-		r.ymax = img->GetHeight();
-	}
-
-	boost::filesystem::create_directory(boost::filesystem::path(dst_filepath).parent_path());
-	if (condense) {
-		gimg_export(dst_filepath.c_str(), condense, r.Width(), r.Height(), img->GetFormat(), true);
-		delete[] condense;
-	} else {
-		gimg_export(dst_filepath.c_str(), img->GetPixelData(), img->GetWidth(), img->GetHeight(), img->GetFormat(), true);
-	}
-}
-
-bool Crop(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
-	      tc::OpLog& log, rapidjson::MemoryPoolAllocator<>& alloc)
-{
-	if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
+	if (s2loader::SymbolFile::Instance()->Type(src_filepath.c_str()) != s2::SYM_IMAGE) {
 		return false;
 	}
 
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(filepath, PRE_MUL_ALPHA);
+	img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
 
 	uint8_t* condense = nullptr;
-	pimg::Rect r;
 	if (img->GetFormat() == GPF_RGBA8)
 	{
 		pimg::Condense cd(img->GetPixelData(), img->GetWidth(), img->GetHeight());
@@ -184,31 +156,6 @@ bool Crop(const std::string& filepath, const std::string& src_dir, const std::st
 		r.xmax = img->GetWidth();
 		r.ymax = img->GetHeight();
 	}
-
-	// save log
-	rapidjson::Value val;
-	val.SetObject();
-
-	std::string relative_path = boost::filesystem::relative(filepath, src_dir).string();
-	val.AddMember("filepath", rapidjson::Value(relative_path.c_str(), alloc), alloc);
-
-	rapidjson::Value sz_val;
-	sz_val.SetObject();
-	sz_val.AddMember("w", img->GetWidth(), alloc);
-	sz_val.AddMember("h", img->GetHeight(), alloc);
-	val.AddMember("source_size", sz_val, alloc);
-
-	rapidjson::Value pos_val;
-	pos_val.SetObject();
-	pos_val.AddMember("x", r.xmin, alloc);
-	pos_val.AddMember("y", img->GetHeight() - r.ymax, alloc);
-	pos_val.AddMember("w", r.Width(), alloc);
-	pos_val.AddMember("h", r.Height(), alloc);
-	val.AddMember("position", pos_val, alloc);
-
-	StoreBoundInfo(*img, pimg::Rect(r.xmin, r.ymin, r.xmax, r.ymax), val, alloc);
-
-	log.Insert(relative_path, val, alloc);
 
 	boost::filesystem::create_directory(boost::filesystem::path(dst_filepath).parent_path());
 	if (condense) {
@@ -221,6 +168,53 @@ bool Crop(const std::string& filepath, const std::string& src_dir, const std::st
 	return true;
 }
 
+bool CropSingle(const std::string& src_filepath, const std::string& dst_filepath)
+{
+	std::shared_ptr<pimg::ImageData> img;
+	pimg::Rect r;
+	return Crop(src_filepath, dst_filepath, img, r);
+}
+
+bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
+	           std::unique_ptr<tc::OpLog>& op_log, rapidjson::MemoryPoolAllocator<>& alloc)
+{
+	std::shared_ptr<pimg::ImageData> img;
+	pimg::Rect r;
+	if (!Crop(filepath, dst_filepath, img, r)) {
+		return false;
+	}
+
+	if (op_log)
+	{
+		// save log
+		rapidjson::Value val;
+		val.SetObject();
+
+		std::string relative_path = boost::filesystem::relative(filepath, src_dir).string();
+		val.AddMember("filepath", rapidjson::Value(relative_path.c_str(), alloc), alloc);
+
+		rapidjson::Value sz_val;
+		sz_val.SetObject();
+		sz_val.AddMember("w", img->GetWidth(), alloc);
+		sz_val.AddMember("h", img->GetHeight(), alloc);
+		val.AddMember("source_size", sz_val, alloc);
+
+		rapidjson::Value pos_val;
+		pos_val.SetObject();
+		pos_val.AddMember("x", r.xmin, alloc);
+		pos_val.AddMember("y", img->GetHeight() - r.ymax, alloc);
+		pos_val.AddMember("w", r.Width(), alloc);
+		pos_val.AddMember("h", r.Height(), alloc);
+		val.AddMember("position", pos_val, alloc);
+
+		StoreBoundInfo(*img, pimg::Rect(r.xmin, r.ymin, r.xmax, r.ymax), val, alloc);
+
+		op_log->Insert(relative_path, val, alloc);
+	}
+
+	return true;
+}
+
 }
 
 namespace crop
@@ -228,53 +222,10 @@ namespace crop
 
 void CropBorder(const std::string& src_path, const std::string& dst_path)
 {
-	if (!boost::filesystem::is_directory(src_path)) {
-		Crop(src_path, dst_path);
-		return;
-	}
-
-	boost::filesystem::create_directory(dst_path);
-
-	tc::ModifyTime modify_time;
 	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
-	modify_time.LoadFromFile(modify_time_filepath.string());
-
-	tc::OpLog log;
 	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
-	log.LoadFromFile(cfg_filepath.string());
-
-	rapidjson::MemoryPoolAllocator<> alloc;
-
-	boost::filesystem::recursive_directory_iterator itr(src_path), end;
-	while (itr != end) 
-	{
-		std::string filepath = itr->path().string();
-		if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != s2::SYM_IMAGE) {
-			++itr;
-			continue;
-		}
-
-		auto relative_path = boost::filesystem::relative(filepath, src_path);
-
-		log.SetUsed(relative_path.string());
-
-		uint64_t old_time = modify_time.Query(relative_path.string()),
-				 new_time = boost::filesystem::last_write_time(filepath);
-		if (old_time == new_time) {
-			++itr;
-			continue;
-		}
-
-		auto dst_filepath = boost::filesystem::absolute(relative_path, dst_path);
-		Crop(filepath, src_path, dst_filepath.string(), log, alloc);
-		modify_time.Insert(relative_path.string(), new_time);
-
-		++itr;
-	}
-
-	log.StoreToFile(cfg_filepath.string(), dst_path);
-
-	modify_time.StoreToFile(modify_time_filepath.string());
+	tc::Application app(modify_time_filepath.string(), cfg_filepath.string());
+	app.Do(src_path, dst_path, CropSingle, CropMulti, s2::SYM_IMAGE);
 }
 
 }

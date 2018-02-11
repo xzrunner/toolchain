@@ -13,7 +13,7 @@ class OpLog
 {
 public:
 	void LoadFromFile(const std::string& filepath);
-	void StoreToFile(const std::string& filepath, const std::string& dst_dir) const;
+	void StoreToFile(const std::string& filepath/*, const std::string& dst_dir*/) const;
 
 	void Insert(const std::string& filepath, rapidjson::Value& val, rapidjson::MemoryPoolAllocator<>& alloc);
 
