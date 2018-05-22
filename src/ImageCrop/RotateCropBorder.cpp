@@ -6,12 +6,11 @@
 #include <SM_Calc.h>
 #include <pimg/OutlineRaw.h>
 #include <pimg/ImageData.h>
-#include <s2loader/SymbolFile.h>
-#include <s2loader/SpriteFactory.h>
-#include <sprite2/SymType.h>
-#include <sprite2/Sprite.h>
-#include <sprite2/DrawRT.h>
-#include <gum/ResPool.h>
+#include <painting2/DrawRT.h>
+#include <sx/ResFileHelper.h>
+#include <ns/NodeFactory.h>
+#include <node2/RenderSystem.h>
+#include <facade/ResPool.h>
 
 #include <boost/filesystem.hpp>
 
@@ -25,7 +24,7 @@ namespace
 static const char* TIME_FILEPATH = "rotate_crop_border_time.json";
 static const char* LOG_FILEPATH  = "rotate_crop_border_log.json";
 
-bool GetRotateTrimInfo(const uint8_t* pixels, int img_w, int img_h, 
+bool GetRotateTrimInfo(const uint8_t* pixels, int img_w, int img_h,
 	                   int& width, int& height, sm::vec2& center, float& angle)
 {
 	pimg::OutlineRaw raw(pixels, img_w, img_h);
@@ -73,12 +72,12 @@ bool GetRotateTrimInfo(const uint8_t* pixels, int img_w, int img_h,
 bool Crop(const std::string& src_filepath, const std::string& dst_filepath,
 	      sm::vec2& center, float& angle)
 {
-	if (s2loader::SymbolFile::Instance()->Type(src_filepath.c_str()) != s2::SYM_IMAGE) {
+	if (sx::ResFileHelper::Type(src_filepath.c_str()) != sx::RES_FILE_IMAGE) {
 		return false;
 	}
 
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
+	auto img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
 
 	int width, height;
 	bool success = GetRotateTrimInfo(img->GetPixelData(), img->GetWidth(),
@@ -87,15 +86,21 @@ bool Crop(const std::string& src_filepath, const std::string& dst_filepath,
 		return false;
 	}
 
-	auto spr = s2loader::SpriteFactory::Instance()->Create(src_filepath.c_str());
-	spr->SetPosition(center);
-	spr->SetAngle(angle);
+	auto casset = ns::NodeFactory::CreateAssetComp(src_filepath);
+	if (!casset) {
+		return false;
+	}
 
 	boost::filesystem::create_directory(
 		boost::filesystem::path(dst_filepath).parent_path());
 
-	s2::DrawRT rt;
-	rt.Draw(*spr, true, width, height);
+	sm::Matrix2D trans;
+	trans.SetTransformation(center.x, center.y, angle, 1, 1, 0, 0, 0, 0);
+
+	pt2::DrawRT rt;
+	rt.Draw<n0::CompAsset>(*casset, [&](const n0::CompAsset& casset, const sm::Matrix2D& mt) {
+		n2::RenderSystem::Draw(casset, trans * mt);
+	}, true);
 	rt.StoreToFile(dst_filepath.c_str(), width, height);
 
 	return true;
@@ -108,7 +113,7 @@ bool CropSingle(const std::string& src_filepath, const std::string& dst_filepath
 	return Crop(src_filepath, dst_filepath, center, angle);
 }
 
-bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath, 
+bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
 	           std::unique_ptr<tc::OpLog>& op_log, rapidjson::MemoryPoolAllocator<>& alloc)
 {
 	sm::vec2 center;
@@ -153,7 +158,7 @@ void RotateCropBorder(const std::string& src_path, const std::string& dst_path)
 	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
 	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
 	tc::Application app(modify_time_filepath.string(), cfg_filepath.string());
-	app.Do(src_path, dst_path, CropSingle, CropMulti, s2::SYM_IMAGE);
+	app.Do(src_path, dst_path, CropSingle, CropMulti, sx::RES_FILE_IMAGE);
 }
 
 }

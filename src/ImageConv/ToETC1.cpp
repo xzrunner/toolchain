@@ -1,9 +1,8 @@
 #include <gimg_typedef.h>
 #include <pimg/ImageData.h>
 #include <pimg/TransToETC1.h>
-#include <sprite2/SymType.h>
-#include <s2loader/SymbolFile.h>
-#include <gum/ResPool.h>
+#include <sx/ResFileHelper.h>
+#include <facade/ResPool.h>
 
 #include <boost/filesystem.hpp>
 
@@ -14,12 +13,12 @@ namespace
 
 bool Conv(const std::string& src_path, const std::string& dst_path)
 {
-	if (s2loader::SymbolFile::Instance()->Type(src_path.c_str()) != s2::SYM_IMAGE) {
+	if (sx::ResFileHelper::Type(src_path.c_str()) != sx::RES_FILE_IMAGE) {
 		return false;
 	}
 
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
+	auto img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
 
 	int c = img->GetFormat() == GPF_RGB ? 3 : 4;
 	pimg::TransToETC1 trans(img->GetPixelData(), img->GetWidth(), img->GetHeight(), c, false, true);

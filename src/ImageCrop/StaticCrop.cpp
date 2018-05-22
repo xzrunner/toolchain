@@ -2,7 +2,7 @@
 #include <gimg_export.h>
 #include <pimg/ImageData.h>
 #include <pimg/Cropping.h>
-#include <gum/ResPool.h>
+#include <facade/ResPool.h>
 
 #include <string>
 
@@ -13,7 +13,7 @@ void StaticCrop(const std::string& src_path, const std::string& dst_path,
 	            int xmin, int ymin, int xmax, int ymax)
 {
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
+	auto img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
 
 	int hw = static_cast<int>(img->GetWidth() * 0.5f);
 	int hh = static_cast<int>(img->GetHeight() * 0.5f);

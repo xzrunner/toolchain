@@ -7,10 +7,9 @@
 #include <pimg/Rect.h>
 #include <pimg/ImageData.h>
 #include <pimg/Condense.h>
-#include <sprite2/SymType.h>
-#include <s2loader/SymbolFile.h>
 #include <js/RapidJsonHelper.h>
-#include <gum/ResPool.h>
+#include <sx/ResFileHelper.h>
+#include <facade/ResPool.h>
 
 #include <rapidjson/document.h>
 
@@ -37,7 +36,7 @@ bool IsTransparent(const pimg::ImageData& img, int x, int y)
 	}
 }
 
-void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r, 
+void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r,
 	                rapidjson::Value& val, rapidjson::MemoryPoolAllocator<>& alloc)
 {
 	rapidjson::Value bound_val;
@@ -138,12 +137,12 @@ void StoreBoundInfo(const pimg::ImageData& img, const pimg::Rect& r,
 bool Crop(const std::string& src_filepath, const std::string& dst_filepath,
 	      std::shared_ptr<pimg::ImageData>& img, pimg::Rect& r)
 {
-	if (s2loader::SymbolFile::Instance()->Type(src_filepath.c_str()) != s2::SYM_IMAGE) {
+	if (sx::ResFileHelper::Type(src_filepath.c_str()) != sx::RES_FILE_IMAGE) {
 		return false;
 	}
 
 	static const bool PRE_MUL_ALPHA(false);
-	img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
+	img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
 
 	uint8_t* condense = nullptr;
 	if (img->GetFormat() == GPF_RGBA8)
@@ -225,7 +224,7 @@ void CropBorder(const std::string& src_path, const std::string& dst_path)
 	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
 	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
 	tc::Application app(modify_time_filepath.string(), cfg_filepath.string());
-	app.Do(src_path, dst_path, CropSingle, CropMulti, s2::SYM_IMAGE);
+	app.Do(src_path, dst_path, CropSingle, CropMulti, sx::RES_FILE_IMAGE);
 }
 
 }

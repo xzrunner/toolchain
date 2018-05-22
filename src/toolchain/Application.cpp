@@ -2,14 +2,14 @@
 #include "ModifyTime.h"
 #include "OpLog.h"
 
-#include <s2loader/SymbolFile.h>
+#include <sx/ResFileHelper.h>
 
 #include <boost/filesystem.hpp>
 
 namespace tc
 {
 
-Application::Application(const std::string& modify_time_filepath, 
+Application::Application(const std::string& modify_time_filepath,
 	                     const std::string& op_log_filepath)
 	: m_modify_time_filepath(modify_time_filepath)
 	, m_op_log_filepath(op_log_filepath)
@@ -34,7 +34,7 @@ Application::~Application()
 	}
 }
 
-void Application::Do(const std::string& src_path, const std::string& dst_path, 
+void Application::Do(const std::string& src_path, const std::string& dst_path,
 	                 SingleFunc sfunc, MultiFunc mfunc, int sym_type)
 {
 	if (!boost::filesystem::is_directory(src_path)) {
@@ -45,10 +45,10 @@ void Application::Do(const std::string& src_path, const std::string& dst_path,
 	boost::filesystem::create_directory(dst_path);
 
 	boost::filesystem::recursive_directory_iterator itr(src_path), end;
-	while (itr != end) 
+	while (itr != end)
 	{
 		std::string filepath = itr->path().string();
-		if (s2loader::SymbolFile::Instance()->Type(filepath.c_str()) != sym_type) {
+		if (sx::ResFileHelper::Type(filepath.c_str()) != sym_type) {
 			++itr;
 			continue;
 		}
@@ -59,7 +59,7 @@ void Application::Do(const std::string& src_path, const std::string& dst_path,
 			m_op_log->SetUsed(relative_path.string());
 		}
 
-		if (m_modify_time) 
+		if (m_modify_time)
 		{
 			uint64_t old_time = m_modify_time->Query(relative_path.string()),
 				     new_time = boost::filesystem::last_write_time(filepath);

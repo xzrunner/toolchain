@@ -1,11 +1,11 @@
 #include <SM_Vector.h>
-#include <sprite2/SymType.h>
-#include <sprite2/Sprite.h>
-#include <sprite2/DrawRT.h>
-#include <s2loader/SymbolFile.h>
-#include <s2loader/SpriteFactory.h>
 #include <pimg/ImageData.h>
-#include <gum/ResPool.h>
+#include <unirender/Blackboard.h>
+#include <painting2/DrawRT.h>
+#include <node2/RenderSystem.h>
+#include <sx/ResFileHelper.h>
+#include <ns/NodeFactory.h>
+#include <facade/ResPool.h>
 
 #include <boost/filesystem.hpp>
 
@@ -16,23 +16,30 @@ namespace
 
 bool Scale(const std::string& src_path, const std::string& dst_path, float scale)
 {
-	if (s2loader::SymbolFile::Instance()->Type(src_path.c_str()) != s2::SYM_IMAGE) {
+	if (sx::ResFileHelper::Type(src_path.c_str()) != sx::RES_FILE_IMAGE) {
 		return false;
 	}
 
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
+	auto img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_path, PRE_MUL_ALPHA);
 	int w = static_cast<int>(std::ceil(img->GetWidth() * scale));
 	int h = static_cast<int>(std::ceil(img->GetHeight() * scale));
 
-	auto spr = s2loader::SpriteFactory::Instance()->Create(src_path.c_str());
-	sm::vec2 spr_scale;
-	spr_scale.x = static_cast<float>(w) / img->GetWidth();
-	spr_scale.y = static_cast<float>(h) / img->GetHeight();
-	spr->SetScale(spr_scale);
+	auto casset = ns::NodeFactory::CreateAssetComp(src_path);
+	if (!casset) {
+		return false;
+	}
 
-	s2::DrawRT rt;
-	rt.Draw(*spr, true, w, h);
+	float sx = static_cast<float>(w) / img->GetWidth();
+	float sy = static_cast<float>(h) / img->GetHeight();
+
+	sm::Matrix2D trans;
+	trans.SetTransformation(0, 0, 0, sx, sy, 0, 0, 0, 0);
+
+	pt2::DrawRT rt;
+	rt.Draw<n0::CompAsset>(*casset, [&](const n0::CompAsset& casset, const sm::Matrix2D& mt) {
+		n2::RenderSystem::Draw(casset, trans * mt);
+	}, true);
 	rt.StoreToFile(dst_path.c_str(), w, h);
 
 	return true;
@@ -48,7 +55,7 @@ void ScaleImage(const std::string& src_path, const std::string& dst_path, float 
 	if (boost::filesystem::is_directory(src_path))
 	{
 		boost::filesystem::recursive_directory_iterator itr(src_path), end;
-		while (itr != end) 
+		while (itr != end)
 		{
 			std::string src_filepath = itr->path().string();
 			auto relative_path = boost::filesystem::relative(src_filepath, src_path);

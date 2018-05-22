@@ -8,6 +8,9 @@
     <ClCompile Include="..\..\..\ext\external\rg_etc1\rg_etc1_for_c.cpp">
       <Filter>3rd\rg_etc1</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\ImageConv\ToETC1.cpp" />
+    <ClCompile Include="..\..\..\src\ImageConv\ToETC2.cpp" />
+    <ClCompile Include="..\..\..\src\ImageConv\ToPVR.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd">

@@ -7,9 +7,8 @@
 #include <pimg/Cropping.h>
 #include <gimg_export.h>
 #include <gimg_typedef.h>
-#include <sprite2/SymType.h>
-#include <s2loader/SymbolFile.h>
-#include <gum/ResPool.h>
+#include <sx/ResFileHelper.h>
+#include <facade/ResPool.h>
 
 #include <boost/filesystem.hpp>
 
@@ -33,14 +32,14 @@ std::string string_format(const std::string& format, Args ... args)
 
 bool Crop(const std::string& src_filepath, const std::string& dst_filepath, const std::string& src_dir)
 {
-	if (s2loader::SymbolFile::Instance()->Type(src_filepath.c_str()) != s2::SYM_IMAGE) {
+	if (sx::ResFileHelper::Type(src_filepath.c_str()) != sx::RES_FILE_IMAGE) {
 		return false;
 	}
 
 	auto dst_dir = boost::filesystem::path(dst_filepath).parent_path().string();
 
 	static const bool PRE_MUL_ALPHA(false);
-	auto img = gum::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
+	auto img = facade::ResPool::Instance().Fetch<pimg::ImageData>(src_filepath, PRE_MUL_ALPHA);
 
 	pimg::RegularRectCut cut(img->GetPixelData(), img->GetWidth(), img->GetHeight());
 	cut.AutoCut();
@@ -73,7 +72,7 @@ bool CropSingle(const std::string& src_filepath, const std::string& dst_filepath
 	return Crop(src_filepath, dst_filepath, src_dir);
 }
 
-bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath, 
+bool CropMulti(const std::string& filepath, const std::string& src_dir, const std::string& dst_filepath,
 	           std::unique_ptr<tc::OpLog>& op_log, rapidjson::MemoryPoolAllocator<>& alloc)
 {
 	if (!Crop(filepath, dst_filepath, src_dir)) {
@@ -97,11 +96,11 @@ namespace crop
 void AutoCropGrids(const std::string& src_path, const std::string& dst_path)
 {
 	tc::InitRender();
-	
+
 	auto modify_time_filepath = boost::filesystem::absolute(TIME_FILEPATH, dst_path);
 	auto cfg_filepath = boost::filesystem::absolute(LOG_FILEPATH, dst_path);
 	tc::Application app(modify_time_filepath.string(), cfg_filepath.string());
-	app.Do(src_path, dst_path, CropSingle, CropMulti, s2::SYM_IMAGE);
+	app.Do(src_path, dst_path, CropSingle, CropMulti, sx::RES_FILE_IMAGE);
 }
 
 }
