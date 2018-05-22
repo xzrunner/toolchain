@@ -1,9 +1,6 @@
 [submodule "ext/external"]
 	path = ext/external
 	url = git@github.com:xzrunner/external.git
-[submodule "ext/gum"]
-	path = ext/gum
-	url = git@github.com:xzrunner/gum.git
 [submodule "ext/guard"]
 	path = ext/guard
 	url = git@github.com:xzrunner/guard.git
@@ -16,12 +13,6 @@
 [submodule "ext/cu/src/cu"]
 	path = ext/cu/src/cu
 	url = git@github.com:xzrunner/cu.git
-[submodule "ext/sprite2"]
-	path = ext/sprite2
-	url = git@github.com:xzrunner/sprite2.git
-[submodule "ext/s2loader"]
-	path = ext/s2loader
-	url = git@github.com:xzrunner/s2loader.git
 [submodule "ext/memmgr"]
 	path = ext/memmgr
 	url = git@github.com:xzrunner/memmgr.git
@@ -40,9 +31,6 @@
 [submodule "ext/fs/src/fs"]
 	path = ext/fs/src/fs
 	url = git@github.com:xzrunner/fs.git
-[submodule "ext/simp"]
-	path = ext/simp
-	url = git@github.com:xzrunner/simp.git
 [submodule "ext/dtex2"]
 	path = ext/dtex2
 	url = git@github.com:xzrunner/dtex2.git
@@ -55,18 +43,9 @@
 [submodule "ext/multitask"]
 	path = ext/multitask
 	url = git@github.com:xzrunner/multitask.git
-[submodule "ext/bimp"]
-	path = ext/bimp
-	url = git@github.com:xzrunner/bimp.git
-[submodule "ext/timp"]
-	path = ext/timp
-	url = git@github.com:xzrunner/timp.git
 [submodule "ext/shaderlab"]
 	path = ext/shaderlab
 	url = git@github.com:xzrunner/shaderlab.git
-[submodule "ext/s2serializer"]
-	path = ext/s2serializer
-	url = git@github.com:xzrunner/s2serializer.git
 [submodule "ext/ds/src/ds"]
 	path = ext/ds/src/ds
 	url = git@github.com:xzrunner/ds.git
@@ -100,9 +79,6 @@
 [submodule "ext/rigging/src/rigging"]
 	path = ext/rigging/src/rigging
 	url = git@github.com:xzrunner/rigging.git
-[submodule "ext/flatten"]
-	path = ext/flatten
-	url = git@github.com:xzrunner/flatten.git
 [submodule "ext/node0"]
 	path = ext/node0
 	url = git@github.com:xzrunner/node0.git
@@ -118,6 +94,30 @@
 [submodule "ext/node2"]
 	path = ext/node2
 	url = git@github.com:xzrunner/node2.git
-[submodule "ext/s2storer"]
-	path = ext/s2storer
-	url = git@github.com:xzrunner/s2storer.git
+[submodule "ext/model"]
+	path = ext/model
+	url = git@github.com:xzrunner/model.git
+[submodule "ext/stat"]
+	path = ext/stat
+	url = git@github.com:xzrunner/stat.git
+[submodule "ext/anim"]
+	path = ext/anim
+	url = git@github.com:xzrunner/anim.git
+[submodule "ext/emitter"]
+	path = ext/emitter
+	url = git@github.com:xzrunner/emitter.git
+[submodule "ext/playdb"]
+	path = ext/playdb
+	url = git@github.com:xzrunner/playdb.git
+[submodule "ext/nserializer"]
+	path = ext/nserializer
+	url = git@github.com:xzrunner/nserializer.git
+[submodule "ext/serializerx"]
+	path = ext/serializerx
+	url = git@github.com:xzrunner/serializerx.git
+[submodule "ext/facade"]
+	path = ext/facade
+	url = git@github.com:xzrunner/facade.git
+[submodule "ext/moon"]
+	path = ext/moon
+	url = git@github.com:xzrunner/moon.git

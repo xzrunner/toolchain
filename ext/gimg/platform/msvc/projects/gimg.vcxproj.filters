@@ -64,6 +64,9 @@
     <ClCompile Include="..\..\..\..\external\etcpack\source\etcpack.cxx">
       <Filter>external\etcpack</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\gimg\gimg_dds.c">
+      <Filter>type</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\gimg\gimg_bmp.h">
@@ -106,6 +109,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\external\etcpack\source\etcimage.h">
       <Filter>external\etcpack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\gimg\gimg_dds.h">
+      <Filter>type</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
