@@ -122,9 +122,6 @@
     <ProjectReference Include="..\..\..\ext\anim\platform\msvc\projects\anim.vcxproj">
       <Project>{8f1c8db8-6b46-40c8-9acf-e6ad237e47d4}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\bimp\platform\msvc\projects\bimp.vcxproj">
-      <Project>{f22a86e7-b73f-4f6a-9ea8-e4ae9cc9d885}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\ext\bs\platform\msvc\projects\bs.vcxproj">
       <Project>{f5e6ae49-23dc-421b-ad33-c422e8590520}</Project>
     </ProjectReference>
@@ -157,9 +154,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\guard\platform\msvc\projects\guard.vcxproj">
       <Project>{cc45ae0e-8c51-4759-9614-8bc321c565a0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\gum\platform\msvc\projects\gum.vcxproj">
-      <Project>{70c5478d-6d53-4f75-99d4-f06373175c83}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\js\platform\msvc\projects\js.vcxproj">
       <Project>{68c18da9-79bb-43a5-9e0c-79740aea954b}</Project>
@@ -212,35 +206,20 @@
     <ProjectReference Include="..\..\..\ext\rigging\platform\msvc\projects\rigging.vcxproj">
       <Project>{dbe6d3f5-4e3d-4df8-b520-a27bce5a5d21}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\s2loader\platform\msvc\projects\s2loader.vcxproj">
-      <Project>{e5a136ee-7ee1-4682-a1b1-c942cb2110e7}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\s2serializer\platform\msvc\projects\s2serializer.vcxproj">
-      <Project>{b6939acb-3794-4b2a-95da-f99ecdf79d0f}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\ext\serializerx\platform\msvc\projects\serializerx.vcxproj">
       <Project>{e8c6ffa3-644e-45c9-be61-8633db5202f9}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\shaderlab\platform\msvc\projects\shaderlab.vcxproj">
       <Project>{5c357759-ca95-42e1-b907-dfb87a995f6c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\simp\platform\msvc\projects\simp.vcxproj">
-      <Project>{d19b530f-a257-4465-a92c-381e91b47746}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\ext\sm\platform\msvc\projects\sm.vcxproj">
       <Project>{81630e0d-e1ef-4837-a0ee-30435ed4fe59}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\sprite2\platform\msvc\projects\sprite2.vcxproj">
-      <Project>{ccdd6dc3-9da2-4215-bac6-6031699fb7e4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\stat\platform\msvc\projects\stat.vcxproj">
       <Project>{16868cde-6def-4136-8cc8-75212f34462e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\texpack\platform\msvc\projects\texpack.vcxproj">
       <Project>{a7737c76-5221-47a5-86b7-84bd56c47730}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\ext\timp\platform\msvc\projects\timp.vcxproj">
-      <Project>{27824966-6c3c-4874-abff-499ddddb4d48}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\ext\uniaudio\platform\msvc\projects\uniaudio.vcxproj">
       <Project>{fdb8a0eb-d438-43b4-b65f-ff1b80a9d45b}</Project>

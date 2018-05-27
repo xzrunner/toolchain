@@ -1,10 +1,6 @@
 #include <string>
 #include <iostream>
 
-//#pragma comment(lib,"user32.lib")
-//#pragma comment(lib,"gdi32.lib")
-#pragma comment(lib,"Shell32")
-
 namespace crop
 {
 

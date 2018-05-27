@@ -113,6 +113,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3.facade", "..\..\ext\facad
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "4.moon", "..\..\ext\moon\platform\msvc\projects\moon.vcxproj", "{9FB05942-DCAE-4A6F-8F99-86E20DE9DFCC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ResPacker", "projects\ResPacker.vcxproj", "{D2391076-CB41-4144-8DA2-398645025ACD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -295,6 +297,10 @@ Global
 		{9FB05942-DCAE-4A6F-8F99-86E20DE9DFCC}.Debug|x86.Build.0 = Debug|Win32
 		{9FB05942-DCAE-4A6F-8F99-86E20DE9DFCC}.Release|x86.ActiveCfg = Release|Win32
 		{9FB05942-DCAE-4A6F-8F99-86E20DE9DFCC}.Release|x86.Build.0 = Release|Win32
+		{D2391076-CB41-4144-8DA2-398645025ACD}.Debug|x86.ActiveCfg = Debug|Win32
+		{D2391076-CB41-4144-8DA2-398645025ACD}.Debug|x86.Build.0 = Debug|Win32
+		{D2391076-CB41-4144-8DA2-398645025ACD}.Release|x86.ActiveCfg = Release|Win32
+		{D2391076-CB41-4144-8DA2-398645025ACD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
