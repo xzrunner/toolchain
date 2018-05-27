@@ -10,6 +10,7 @@
 #include <shaderlab/RenderContext.h>
 #include <shaderlab/ShaderMgr.h>
 #include <facade/RenderContext.h>
+#include <facade/Facade.h>
 
 #include <gl/glew.h>
 #include <glfw3.h>
@@ -94,6 +95,13 @@ bool InitRender()
 	if (!InitShader()) {
 		return false;
 	}
+	return true;
+}
+
+bool InitSubmodule()
+{
+	facade::Facade::Init();
+
 	return true;
 }
 
