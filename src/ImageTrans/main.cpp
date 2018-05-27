@@ -9,6 +9,12 @@ extern void ScaleImage(const std::string& src_path, const std::string& dst_path,
 
 }
 
+namespace tc
+{
+extern bool InitRender();
+extern bool InitSubmodule();
+}
+
 int main(int argc, char* argv[])
 {
 	if (argc < 5)
@@ -17,6 +23,9 @@ int main(int argc, char* argv[])
 		std::cout << "Usage: ImageTrans scale <src path> <dst path> <scale>" << std::endl;
 		return 1;
 	}
+
+	tc::InitRender();
+	tc::InitSubmodule();
 
 	const std::string op_str = argv[1];
 	if (op_str == "rotate")

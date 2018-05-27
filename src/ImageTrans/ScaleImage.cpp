@@ -39,7 +39,7 @@ bool Scale(const std::string& src_path, const std::string& dst_path, float scale
 	pt2::DrawRT rt;
 	rt.Draw<n0::CompAsset>(*casset, [&](const n0::CompAsset& casset, const sm::Matrix2D& mt) {
 		n2::RenderSystem::Draw(casset, trans * mt);
-	}, true);
+	}, true, sx, sy);
 	rt.StoreToFile(dst_path.c_str(), w, h);
 
 	return true;
