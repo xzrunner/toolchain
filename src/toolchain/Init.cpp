@@ -59,10 +59,6 @@ bool InitGL()
 
 bool InitShader()
 {
-	if (!InitGL()) {
-		return false;
-	}
-
 	RC = std::make_shared<facade::RenderContext>();
 	auto& rc = RC->GetSlRc();
 	auto& mgr = rc.GetShaderMgr();
