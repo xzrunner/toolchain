@@ -1,136 +1,79 @@
-// code from https://gist.githubusercontent.com/noonat/1127614/raw/f4d0c4612653aaf7a3d16aa4e21d9f36f416487c/extract_pak.c
-// Extract a PAK file (from Quake 1 and 2)
+#include <boost/filesystem.hpp>
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
+#include <string>
+#include <iostream>
+#include <fstream>
 
-typedef struct {
-    char id[4];
-    int dir_offset;
-    int dir_length;
-} pak_header_t;
+#include <assert.h>
 
-typedef struct {
-    char name[56];
-    int offset;
-    int length;
-} pak_entry_t;
+namespace
+{
 
-char *dirname(const char *path) {
-    const char *p = strrchr(path, '/');
-    if (p) {
-        size_t n = p - path;
-        if (n > 0) {
-            char *dir = malloc(n + 1);
-            strncpy(dir, path, n);
-            dir[n] = 0;
-            return dir;
-        }
-    }
-    return NULL;
+struct PakHeader
+{
+	char id[4];
+	int dir_offset;
+	int dir_length;
+};
+
+struct PakEntry
+{
+	char name[56];
+	int offset;
+	int length;
+};
+
 }
 
-int mkdir_p(const char *dir, mode_t mode) {
-    int rv = mkdir(dir, mode);
-    if (rv < 0 && errno == ENOENT) {
-        char *parent_dir = dirname(dir);
-        if (parent_dir) {
-            mkdir_p(parent_dir, mode);
-            free(parent_dir);
-            rv = mkdir(dir, mode);
-        }
+namespace quake
+{
+
+void ExtractPak(const std::string& src_path, const std::string& dst_path)
+{
+	assert(boost::filesystem::is_regular_file(src_path));
+
+	std::ifstream fin(src_path.c_str(), std::ios::binary);
+	if (fin.fail()) {
+		return;
+	}
+
+	PakHeader header;
+
+	fin.read(reinterpret_cast<char*>(&header), sizeof(header));
+	if (strncmp(header.id, "PACK", 4) != 0) {
+		std::cerr << "invalid header id\n";
+		return;
     }
-    return rv;
+
+	if (header.dir_length % sizeof(PakEntry)) {
+		std::cerr << "invalid header length\n";
+		return;
+	}
+
+	char* buf = new char[header.dir_offset];
+
+	int num = header.dir_length / sizeof(PakEntry);
+	PakEntry* entries = new PakEntry[num];
+	fin.seekg(header.dir_offset);
+	fin.read(reinterpret_cast<char*>(entries), header.dir_length);
+	for (int i = 0; i < num; ++i)
+	{
+		auto& entry = entries[i];
+
+		auto filepath = boost::filesystem::absolute(entry.name, dst_path);
+		boost::filesystem::create_directories(filepath.parent_path());
+
+		std::ofstream fout(filepath.c_str(), std::ios::binary);
+		fin.seekg(entry.offset);
+		fin.read(buf, entry.length);
+		fout.write(buf, entry.length);
+		fout.close();
+	}
+
+	delete[] entries;
+	delete[] buf;
+
+	fin.close();
 }
 
-int main(const int argc, const char **argv) {
-    int i;
-    char buf[4096];
-
-    if (argc < 1) {
-        fprintf(stderr, "usage: %s <pak file>\n", argv[0]);
-        return 1;
-    }
-
-    fprintf(stderr, "opening file %s\n", argv[1]);
-    FILE *pak = (FILE *)fopen(argv[1], "rb");
-    if (!pak) {
-        fprintf(stderr, "error opening %s for reading\n", argv[1]);
-        return 1;
-    } else {
-        fprintf(stderr, "file ok\n");
-    }
-
-    pak_header_t header;
-    fread(&header, sizeof(pak_header_t), 1, pak);
-    fprintf(stderr, "read header ok\n");
-
-    if (strncmp(header.id, "PACK", 4) == 0) {
-        fprintf(stderr, "header id ok\n");
-    } else {
-        fprintf(stderr, "invalid header id\n");
-        fclose(pak);
-        return 1;
-    }
-
-    if (header.dir_length % sizeof(pak_entry_t) == 0) {
-        fprintf(stderr, "dir length ok\n");
-    } else {
-        fprintf(stderr, "invalid dir length\n");
-        fclose(pak);
-        return 1;
-    }
-
-    pak_entry_t *entries = malloc(header.dir_length);
-    if (!entries) {
-        fprintf(stderr, "error allocating entries array\n");
-        fclose(pak);
-        return 1;
-    }
-
-    fseek(pak, header.dir_offset, SEEK_SET);
-    fread(entries, header.dir_length, 1, pak);
-
-    pak_entry_t *entry = entries;
-    int num_entries = header.dir_length / sizeof(pak_entry_t);
-    for (i = 0; i < num_entries; ++i, ++entry) {
-        fprintf(stderr, "%d: %s (%d, %d)\n",
-            i, entry->name, entry->offset, entry->length);
-
-        char *dir = dirname(entry->name);
-        if (dir) {
-            mkdir_p(dir, 0777);
-            free(dir);
-        }
-
-        FILE *out = fopen(entry->name, "wb");
-        if (!out) {
-            fprintf(stderr, "error opening %s for writing\n", entry->name);
-            continue;
-        }
-
-        char *buf = malloc(entry->length);
-        if (!buf) {
-            fprintf(stderr, "error allocating buffer for entry\n");
-            continue;
-        }
-
-        fseek(pak, entry->offset, SEEK_SET);
-        if (fread(buf, entry->length, 1, pak) < 0) {
-            fprintf(stderr, "error reading entry\n");
-        } else if (fwrite(buf, entry->length, 1, out) < 0) {
-            fprintf(stderr, "error writing entry\n");
-        }
-
-        free(buf);
-
-        fclose(out);
-    }
-
-    free(entries);
-    fclose(pak);
-    return 0;
 }
